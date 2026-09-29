@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FOMO Stopper</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header>
+    <img src="icons/icon48.png" alt="">
+    <div>
+      <div class="kicker">Investor Cognition Lab</div>
+      <h1>FOMO Stopper</h1>
+    </div>
+  </header>
+
+  <section class="stats-grid">
+    <div class="stat">
+      <div class="stat-value" id="stat-total">0</div>
+      <div class="stat-label">Interceptions</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-cancelled">0%</div>
+      <div class="stat-label">Cancelled</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value" id="stat-streak">0</div>
+      <div class="stat-label">Answer streak</div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Emotion breakdown</h2>
+    <div id="emotion-bars" class="bars">
+      <p class="empty" id="emotion-empty">No interceptions logged yet.</p>
+    </div>
+  </section>
+
+  <section>
+    <button id="share" class="primary">Share my stats</button>
+    <p class="fine">Renders a local image card you can download. Nothing is posted anywhere.</p>
+  </section>
+
+  <section class="settings">
+    <h2>Settings</h2>
+    <label class="toggle-row">
+      <span>Extension enabled</span>
+      <input type="checkbox" id="set-enabled">
+    </label>
+    <label class="toggle-row">
+      <span>10-second countdown</span>
+      <input type="checkbox" id="set-countdown">
+    </label>
+    <button id="reset" class="danger">Reset all data</button>
+  </section>
+
+  <footer><img src="icons/icl-logo.png" alt="">Study the investor, not just the market.</footer>
+
+  <canvas id="share-canvas" width="1200" height="675" hidden></canvas>
+  <script src="popup.js"></script>
+</body>
+</html>

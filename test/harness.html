@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>FOMO Stopper — offline test harness</title>
+  <style>
+    body { font-family: -apple-system, sans-serif; background: #1e222d; color: #d1d4dc;
+           max-width: 720px; margin: 40px auto; padding: 0 20px; }
+    h1 { font-size: 18px; } h2 { font-size: 14px; color: #9aa0af; margin-top: 28px; }
+    button { font: inherit; padding: 10px 18px; border-radius: 4px; border: none;
+             cursor: pointer; font-weight: 600; }
+    .buy { background: #2962ff; color: #fff; }
+    .sell { background: #f7525f; color: #fff; }
+    .plain { background: #363a45; color: #d1d4dc; }
+    #log { background: #131722; border: 1px solid #363a45; border-radius: 6px;
+           padding: 12px; font: 12px/1.7 monospace; min-height: 120px; margin-top: 24px;
+           white-space: pre-wrap; }
+    .panel { background: #131722; border: 1px solid #363a45; border-radius: 6px;
+             padding: 16px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h1>FOMO Stopper — offline test harness</h1>
+  <p>Simulates TradingView-like order buttons with a stubbed <code>chrome.storage</code>.
+     An "order" only counts as EXECUTED when its click handler actually runs.</p>
+
+  <h2>Tier 1 — known data-name (should be intercepted)</h2>
+  <div class="panel">
+    <button class="buy" data-name="place-and-modify-button" id="t1">Buy 100 AAPL MKT</button>
+  </div>
+
+  <h2>Tier 3 — text fallback inside an order-ticket container (should be intercepted)</h2>
+  <div class="panel" data-name="order-ticket">
+    <button class="sell" id="t3">Sell 50 TSLA LMT 244.10</button>
+  </div>
+
+  <h2>Controls that must NOT be intercepted</h2>
+  <div class="panel" data-name="order-ticket">
+    <button class="plain" role="tab" aria-selected="true" id="tab">Buy (side tab)</button>
+  </div>
+  <div class="panel">
+    <button class="plain" id="unrelated-outer">Buy me a coffee (outside any order panel)</button>
+  </div>
+
+  <h2>Page hotkey trap (mimics TradingView: typing anywhere opens Symbol Search)</h2>
+  <div class="panel">
+    <input id="symbol-search" placeholder="Symbol search" style="font:inherit;padding:8px;width:100%;background:#1e222d;color:#d1d4dc;border:1px solid #363a45;border-radius:4px">
+  </div>
+
+  <div id="log">— event log —</div>
+
+  <script>
+    // ---- chrome.storage stub (harness only; the real extension uses Chrome's) ----
+    window.chrome = {
+      runtime: { lastError: null, getURL: (p) => '../' + p },
+      storage: {
+        local: {
+          _data: {},
+          get(defaults, cb) {
+            const out = {};
+            for (const k of Object.keys(defaults)) {
+              out[k] = k in this._data ? this._data[k] : defaults[k];
+            }
+            cb(out);
+          },
+          set(obj, cb) {
+            Object.assign(this._data, obj);
+            logLine('storage.set → ' + JSON.stringify(obj).slice(0, 200));
+            if (cb) cb();
+          },
+          onChanged: { addListener() {} },
+        },
+        onChanged: { addListener() {} },
+      },
+    };
+    // content.js reads chrome.storage.local.onChanged
+    chrome.storage.local.onChanged = { addListener() {} };
+
+    function logLine(msg) {
+      const el = document.getElementById('log');
+      el.textContent += '\n' + new Date().toLocaleTimeString() + '  ' + msg;
+    }
+
+    // "Broker" handlers — these firing means the order went through.
+    document.getElementById('t1').addEventListener('click', () => logLine('✔ ORDER EXECUTED: Buy 100 AAPL MKT'));
+    document.getElementById('t3').addEventListener('click', () => logLine('✔ ORDER EXECUTED: Sell 50 TSLA LMT'));
+    document.getElementById('tab').addEventListener('click', () => logLine('side tab clicked (should never be intercepted)'));
+    document.getElementById('unrelated-outer').addEventListener('click', () => logLine('unrelated button clicked (should never be intercepted)'));
+
+    // Page-level hotkey: a letter typed while focus is not in a page input
+    // steals focus into Symbol Search. If this fires while the FOMO modal
+    // is open, the modal is leaking keystrokes.
+    document.addEventListener('keydown', (e) => {
+      const t = e.target;
+      if (t instanceof HTMLInputElement || t instanceof HTMLTextAreaElement) return;
+      if (e.key.length !== 1) return;
+      logLine('✘ PAGE HOTKEY FIRED (key "' + e.key + '") — keystroke leaked out of the modal');
+      document.getElementById('symbol-search').focus();
+    });
+  </script>
+
+  <!-- Load the actual content script under test -->
+  <script src="../content.js"></script>
+</body>
+</html>

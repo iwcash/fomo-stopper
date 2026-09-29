@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FOMO Stopper — store screenshot stage</title>
+<!--
+  Renders Chrome Web Store screenshots from the real content.js / popup.js.
+  Usage: serve fomo-stopper/ over HTTP, open store/stage.html?shot=<name>
+  at 1280x800 (or 440x280 for shot=tile). store/shoot.sh does this headlessly.
+-->
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body {
+    background: radial-gradient(1200px 700px at 78% 50%, #1A2340 0%, #0B1020 60%, #080B15 100%);
+    color: #F3F1EA;
+    font-family: 'IBM Plex Sans', 'Helvetica Neue', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .caption {
+    position: absolute; left: 88px; top: 50%; transform: translateY(-50%);
+    width: 520px;
+  }
+  .eyebrow {
+    font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 15px; font-weight: 600;
+    letter-spacing: 0.18em; color: #D8B45A; text-transform: uppercase; margin-bottom: 22px;
+  }
+  .caption h1 {
+    font-family: 'Newsreader', Georgia, serif; font-weight: 500;
+    font-size: 56px; line-height: 1.08; margin-bottom: 24px;
+  }
+  .caption p { font-size: 21px; line-height: 1.5; color: #A9AFC0; }
+  .brand {
+    position: absolute; left: 88px; bottom: 56px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 15px; color: #8990A3;
+  }
+  .brand img { width: 26px; height: 26px; object-fit: contain; }
+  .popup-frame {
+    position: absolute; right: 150px; top: 50%;
+    width: 340px; height: 548px; border: 0;
+    transform: translateY(-50%) scale(1.25); transform-origin: right center;
+    border-radius: 10px; box-shadow: 0 24px 60px rgba(0,0,0,0.55);
+    border: 1px solid #262E45;
+  }
+  .privacy {
+    position: absolute; right: 96px; top: 50%; transform: translateY(-50%);
+    width: 500px; display: flex; flex-direction: column; gap: 16px;
+  }
+  .privacy div {
+    background: #121829; border: 1px solid #262E45; border-radius: 14px;
+    padding: 20px 24px;
+  }
+  .privacy strong { display: block; font-size: 19px; color: #F3F1EA; margin-bottom: 4px; }
+  .privacy span { font-size: 15px; color: #A9AFC0; line-height: 1.45; }
+
+  /* Small promo tile, 440x280 */
+  body.tile .tile {
+    position: absolute; inset: 0; display: flex; align-items: center; gap: 26px;
+    padding: 0 34px;
+  }
+  .tile img {
+    width: 150px; height: 150px; object-fit: contain; flex: none;
+    filter: drop-shadow(0 10px 24px rgba(0,0,0,0.5));
+  }
+  /* Link-preview image, 1200x630 */
+  body.og .tile { padding: 0 96px; gap: 64px; }
+  body.og .tile img { width: 380px; height: 380px; }
+  body.og .tile .eyebrow { font-size: 18px; margin-bottom: 20px; }
+  body.og .tile h1 { font-size: 80px; margin-bottom: 20px; }
+  body.og .tile p { font-size: 30px; }
+  body.og .tile p.og-foot { margin-top: 28px; font-size: 22px; color: #D8B45A; }
+  .tile .eyebrow { font-size: 11px; margin-bottom: 10px; }
+  .tile h1 { font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 31px; line-height: 1.05; white-space: nowrap; margin-bottom: 10px; }
+  .tile p { font-size: 15px; line-height: 1.35; color: #A9AFC0; }
+</style>
+</head>
+<body>
+  <!-- Order button the real content script intercepts; kept off-screen. -->
+  <button data-name="place-and-modify-button" id="order" style="position:absolute;left:-9999px">Buy 100 SPY MKT</button>
+  <div id="stage"></div>
+
+<script>
+  const SHOTS = {
+    pause: {
+      eyebrow: 'Before every order',
+      title: 'Your click is held. Nothing is sent yet.',
+      body: 'Buy or Sell on TradingView opens a pause first. Three questions, then you decide.',
+    },
+    fomo: {
+      eyebrow: 'Name the feeling',
+      title: 'FOMO, said out loud, loses its grip.',
+      body: 'Pick the emotion behind the trade. FOMO and revenge get a second look.',
+    },
+    nudge: {
+      eyebrow: 'No plan, no trade',
+      title: '"idk" is not an exit plan.',
+      body: 'If you can\'t say what would prove you wrong, you have a feeling, not a thesis.',
+    },
+    countdown: {
+      eyebrow: 'Still want it?',
+      title: 'Ten seconds to change your mind.',
+      body: 'Once every answer is real, a short countdown stands between you and the order.',
+    },
+    cancelled: {
+      eyebrow: 'The best trade you didn\'t make',
+      title: 'Cancel, and the cat approves.',
+      body: 'Nothing reaches your broker. Every cancel is logged as a win.',
+    },
+    stats: {
+      eyebrow: 'Know your triggers',
+      title: 'See what really drives your trades.',
+      body: 'Orders paused, orders cancelled, your most common trigger, and your answer streak.',
+    },
+    privacy: {
+      eyebrow: 'Private by design',
+      title: '100% local. Your account stays yours.',
+      body: 'No servers, no tracking, no account access. Open source under MIT.',
+    },
+  };
+
+  const shot = new URLSearchParams(location.search).get('shot') || 'pause';
+
+  // chrome.* stubs so the real extension scripts run on a plain page.
+  const seedLog = [
+    ['FOMO', 'cancelled'], ['FOMO', 'cancelled'], ['Revenge (making back a loss)', 'cancelled'],
+    ['Conviction — my plan says so', 'placed'], ['FOMO', 'placed'], ['Boredom', 'cancelled'],
+    ['Fear / panic', 'cancelled'], ['Conviction — my plan says so', 'placed'], ['FOMO', 'cancelled'],
+    ['Revenge (making back a loss)', 'cancelled'], ['Conviction — my plan says so', 'placed'], ['FOMO', 'cancelled'],
+  ].map(([emotion, outcome], i) => ({
+    timestamp: new Date(Date.UTC(2026, 8, 1 + i)).toISOString(),
+    emotion, tenMinAnswer: outcome === 'placed' ? 'Yes' : 'No', wrongIf: 'x', answered: true, outcome,
+  }));
+  function makeChromeStub(data) {
+    return {
+      runtime: { lastError: null, getURL: (p) => '../' + p },
+      storage: { local: {
+        _data: data,
+        get(defaults, cb) { const o = {}; for (const k of Object.keys(defaults)) o[k] = k in this._data ? this._data[k] : defaults[k]; cb(o); },
+        set(obj, cb) { Object.assign(this._data, obj); if (cb) cb(); },
+        remove(keys, cb) { for (const k of keys) delete this._data[k]; if (cb) cb(); },
+        onChanged: { addListener() {} },
+      } },
+    };
+  }
+  window.chrome = makeChromeStub({});
+
+  const stage = document.getElementById('stage');
+
+  if (shot === 'tile' || shot === 'og') {
+    document.body.classList.add('tile', shot);
+    stage.innerHTML = `
+      <div class="tile">
+        <img src="brand/fomo-stopper-icon-512.png" alt="">
+        <div>
+          <div class="eyebrow">Investor Cognition Lab</div>
+          <h1>FOMO Stopper</h1>
+          <p>Three questions before every TradingView order.</p>
+          ${shot === 'og' ? '<p class="og-foot">Free Chrome extension · 100% local</p>' : ''}
+        </div>
+      </div>`;
+  } else {
+    const s = SHOTS[shot];
+    stage.innerHTML = `
+      <div class="caption">
+        <div class="eyebrow">${s.eyebrow}</div>
+        <h1>${s.title}</h1>
+        <p>${s.body}</p>
+      </div>
+      <div class="brand"><img src="../icons/icl-logo.png" alt="">FOMO Stopper · Investor Cognition Lab</div>`;
+  }
+
+  // Move the real modal to the right half of the canvas (stage-only CSS).
+  const STAGE_MODAL_CSS = `
+    .overlay { background: transparent !important; justify-content: flex-end !important; padding-right: 96px; }
+    .card { max-height: none !important; }
+  `;
+  function stageModal() {
+    const root = document.getElementById('fomo-stopper-host').shadowRoot;
+    const style = document.createElement('style');
+    // The nudge state is the tallest screen; shrink it to fit 800px.
+    style.textContent = STAGE_MODAL_CSS + (shot === 'nudge' ? '.card { zoom: 0.88; }' : '');
+    root.appendChild(style);
+    return root;
+  }
+  function fill(root, { emotion, tenMin, wrongIf }) {
+    if (emotion) { const s = root.querySelector('#emotion'); s.value = emotion; s.dispatchEvent(new Event('change')); }
+    if (tenMin) root.querySelector(`input[value="${tenMin}"]`).click();
+    if (wrongIf) { const t = root.querySelector('#wrongif'); t.value = wrongIf; t.dispatchEvent(new Event('input')); }
+    document.activeElement && document.activeElement.blur && document.activeElement.blur();
+    root.activeElement && root.activeElement.blur();
+  }
+
+  window.addEventListener('load', () => {
+    if (shot === 'tile' || shot === 'og') return;
+
+    if (shot === 'stats') {
+      const frame = document.createElement('iframe');
+      frame.className = 'popup-frame';
+      frame.src = '../popup.html';
+      frame.addEventListener('load', () => {
+        const w = frame.contentWindow;
+        w.chrome = makeChromeStub({ fomo_log: seedLog, fomo_settings: { enabled: true, countdownEnabled: true } });
+        w.loadSettings();
+        w.refresh();
+        const h = w.document.documentElement.scrollHeight;
+        frame.style.height = h + 'px';
+        frame.style.transform = `translateY(-50%) scale(${Math.min(1.25, 720 / h)})`;
+      });
+      stage.appendChild(frame);
+      return;
+    }
+
+    if (shot === 'privacy') {
+      const panel = document.createElement('div');
+      panel.className = 'privacy';
+      panel.innerHTML = `
+        <div><strong>Stored only in your browser</strong><span>Answers and stats live in chrome.storage.local. Nothing is uploaded.</span></div>
+        <div><strong>Never reads your account</strong><span>No balances, positions, or orders. It only checks which button you clicked.</span></div>
+        <div><strong>Runs on tradingview.com only</strong><span>One permission: local storage. No tracking, no analytics.</span></div>
+        <div><strong>Fails open</strong><span>If TradingView changes its page, your trading is never blocked.</span></div>`;
+      stage.appendChild(panel);
+      return;
+    }
+
+    document.getElementById('order').click();
+    const root = stageModal();
+    if (shot === 'fomo') fill(root, { emotion: 'FOMO', tenMin: 'Yes' });
+    if (shot === 'nudge') fill(root, { emotion: 'FOMO', tenMin: 'Yes', wrongIf: 'idk, it just feels like it will go up' });
+    if (shot === 'countdown') fill(root, { emotion: 'Conviction — my plan says so', tenMin: 'Yes', wrongIf: 'A daily close back below the 50-day average at 540' });
+    if (shot === 'cancelled') { root.querySelector('#cancel').click(); root.activeElement && root.activeElement.blur(); }
+    if (shot === 'pause') root.activeElement && root.activeElement.blur();
+  });
+</script>
+<script src="../content.js"></script>
+</body>
+</html>
