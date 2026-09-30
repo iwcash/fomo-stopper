@@ -145,6 +145,14 @@ button:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
 }
 .toggle-row input { accent-color: var(--gold); width: 16px; height: 16px; }
 
+.disclaimer {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--faint);
+  text-align: center;
+  margin: -4px 0 12px;
+}
+
 footer {
   display: flex;
   align-items: center;

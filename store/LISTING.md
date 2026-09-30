@@ -45,7 +45,9 @@ PRIVATE BY DESIGN
 
 Works with TradingView's order panel, including Paper Trading.
 
-FOMO Stopper is an educational tool from Investor Cognition Lab. It is not investment advice. Not affiliated with or endorsed by TradingView.
+DISCLAIMER: FOMO Stopper is an educational tool from Investor Cognition Lab, not investment advice. You are responsible for your own trades. Prices can move while your order is paused, and the extension may not detect every order (for example after a TradingView update), so do not rely on it for risk management. Provided as is, without warranty. Try it with Paper Trading first. Full disclaimer: https://www.investorcognitionlab.com/fomo-stopper/disclaimer
+
+Not affiliated with or endorsed by TradingView.
 
 Study the investor, not just the market.
 ```
@@ -77,7 +79,9 @@ FOMO Stopper 在你的點擊和券商之間加上一次暫停。當你在 Tradin
 
 支援 TradingView 的下單面板，包含模擬交易（Paper Trading）。
 
-FOMO Stopper 是 Investor Cognition Lab 的教育工具，不構成投資建議。與 TradingView 無關聯，亦未獲其背書。
+免責聲明：FOMO Stopper 是 Investor Cognition Lab 的教育工具，不構成投資建議，所有交易決定與結果由你自行負責。訂單暫停期間價格可能變動；擴充功能也可能無法偵測每一筆下單（例如 TradingView 改版後），請勿把它當成風險控管工具。本工具按現狀提供，不附任何保證。建議先用模擬交易試用。完整聲明：https://www.investorcognitionlab.com/fomo-stopper/disclaimer
+
+與 TradingView 無關聯，亦未獲其背書。
 
 Study the investor, not just the market.
 ```

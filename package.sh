@@ -13,6 +13,7 @@ FILES=(
   popup.css
   popup.js
   LICENSE
+  DISCLAIMER.md
   README.md
   icons/icon16.png
   icons/icon32.png

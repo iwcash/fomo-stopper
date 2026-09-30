@@ -4,6 +4,9 @@
 
 > Study the investor, not just the market.
 
+*Educational tool, not investment advice. The pause can delay your order,
+and the extension may not catch every order. See [DISCLAIMER.md](DISCLAIMER.md).*
+
 When you click a Buy/Sell order button on TradingView, FOMO Stopper holds the
 click *before the order fires* and asks three questions:
 
@@ -160,6 +163,13 @@ fomo_log: [
 Cancelling without valid answers (`answered: false`) breaks the answer
 streak. Logs from before v2 may contain `outcome: "dismissed"` (closed with
 Escape), which is treated the same way. The log is capped at 5,000 entries.
+
+## Disclaimer
+
+FOMO Stopper is an educational tool, not investment advice, and not a
+risk-management tool. Prices can move while your order is paused, and if
+TradingView changes its page the pause may stop appearing. You are
+responsible for your own trades. Full text: [DISCLAIMER.md](DISCLAIMER.md).
 
 ## Contributing and reporting problems
 
